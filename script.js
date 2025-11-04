@@ -180,18 +180,32 @@ function showError(message) {
 // Загрузка статусов квартир
 async function loadApartmentsStatus() {
     try {
-        // В будущем можно загружать с сервера
-        // Сейчас используем пустой объект (все квартиры свободны для демо)
+        // Загружаем статусы из JSON файла
+        const response = await fetch('apartments_status.json');
         
-        // Пример: можно добавить API endpoint на вашем сервере
-        // const response = await fetch('https://your-server.com/api/apartments');
-        // apartmentsStatus = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         
-        console.log('📊 Статусы квартир загружены');
+        const data = await response.json();
+        apartmentsStatus = data;
+        
+        // Подсчитываем статистику
+        let occupiedCount = 0;
+        for (const floor in apartmentsStatus) {
+            occupiedCount += Object.keys(apartmentsStatus[floor]).length;
+        }
+        
+        console.log('✅ Статусы квартир загружены из базы данных');
+        console.log(`📊 Этажей с занятыми квартирами: ${Object.keys(apartmentsStatus).length}`);
+        console.log(`🔴 Всего занятых квартир: ${occupiedCount}`);
+        
         return true;
     } catch (e) {
-        console.error('Ошибка загрузки статусов:', e);
+        console.error('⚠️ Ошибка загрузки статусов:', e);
+        console.log('📊 Используем пустые статусы (все квартиры свободны)');
         // Продолжаем работу с пустыми статусами
+        apartmentsStatus = {};
         return false;
     }
 }
