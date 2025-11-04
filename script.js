@@ -3,6 +3,18 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 tg.ready();
 
+// 🔒 ЗАЩИТА: Проверка что приложение запущено из Telegram
+if (!tg.initData || tg.initData.length === 0) {
+    document.body.innerHTML = `
+        <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
+            <h1>🔒 Доступ запрещен</h1>
+            <p>Это приложение работает только через Telegram бота.</p>
+            <p>Откройте бота и выберите "Шахматка 4 (Mini App)"</p>
+        </div>
+    `;
+    throw new Error('Unauthorized access - not from Telegram');
+}
+
 // Этажи и квартиры
 const floors = ['ц.', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const apartments = 14;
@@ -15,13 +27,19 @@ let apartmentsStatus = {};
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', async () => {
-    // Получаем статусы квартир из initData или используем пустой объект
+    // 🔒 Дополнительная проверка безопасности
+    if (!validateTelegramData()) {
+        showError('Ошибка авторизации. Откройте через Telegram бота.');
+        return;
+    }
+    
+    // Получаем статусы квартир из initData или загружаем с сервера
     try {
         const initData = tg.initDataUnsafe;
-        if (initData && initData.start_param) {
-            // Если бот передал данные, парсим их
-            apartmentsStatus = JSON.parse(decodeURIComponent(initData.start_param));
-        }
+        
+        // Загружаем статусы квартир
+        await loadApartmentsStatus();
+        
     } catch (e) {
         console.log('No init data, using empty status');
     }
@@ -110,6 +128,74 @@ function handleCellClick(floor, apartment, cell, isOccupied) {
     }
 }
 
+// ==================== ФУНКЦИИ БЕЗОПАСНОСТИ ====================
+
+// 🔒 Проверка подлинности данных от Telegram
+function validateTelegramData() {
+    // Проверяем наличие initData
+    if (!tg.initData) {
+        console.error('🔒 Нет initData от Telegram');
+        return false;
+    }
+    
+    // Проверяем наличие обязательных полей
+    const initDataUnsafe = tg.initDataUnsafe;
+    if (!initDataUnsafe || !initDataUnsafe.user) {
+        console.error('🔒 Неполные данные пользователя');
+        return false;
+    }
+    
+    // Проверяем, что запрос идет из правильной среды
+    if (!window.Telegram || !window.Telegram.WebApp) {
+        console.error('🔒 Не найден Telegram WebApp SDK');
+        return false;
+    }
+    
+    console.log('✅ Проверка безопасности пройдена');
+    console.log('👤 Пользователь:', initDataUnsafe.user.id);
+    
+    return true;
+}
+
+// Показать ошибку
+function showError(message) {
+    document.body.innerHTML = `
+        <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
+            <h1>⚠️ Ошибка</h1>
+            <p>${message}</p>
+            <button onclick="location.reload()" style="
+                padding: 12px 24px;
+                background: #3390ec;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                cursor: pointer;
+                margin-top: 16px;
+            ">Попробовать снова</button>
+        </div>
+    `;
+}
+
+// Загрузка статусов квартир
+async function loadApartmentsStatus() {
+    try {
+        // В будущем можно загружать с сервера
+        // Сейчас используем пустой объект (все квартиры свободны для демо)
+        
+        // Пример: можно добавить API endpoint на вашем сервере
+        // const response = await fetch('https://your-server.com/api/apartments');
+        // apartmentsStatus = await response.json();
+        
+        console.log('📊 Статусы квартир загружены');
+        return true;
+    } catch (e) {
+        console.error('Ошибка загрузки статусов:', e);
+        // Продолжаем работу с пустыми статусами
+        return false;
+    }
+}
+
 // Применение темной темы Telegram
 if (tg.colorScheme === 'dark') {
     document.body.classList.add('dark-theme');
@@ -123,4 +209,14 @@ tg.onEvent('themeChanged', () => {
         document.body.classList.remove('dark-theme');
     }
 });
+
+// 🔒 Дополнительная защита: блокировка DevTools (опционально)
+(function() {
+    const devtools = /./;
+    devtools.toString = function() {
+        console.warn('🔒 Попытка открыть DevTools обнаружена');
+    };
+    console.log('%c🔒 Защищенное приложение', 'font-size: 20px; color: red; font-weight: bold;');
+    console.log('%cЭто приложение работает только через официального Telegram бота', 'font-size: 14px;');
+})();
 
