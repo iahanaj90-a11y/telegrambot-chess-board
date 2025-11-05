@@ -199,18 +199,18 @@ function showOccupiedApartmentInfo(floor, apartment, aptData) {
         console.log('Нажата кнопка:', buttonId);
         
         if (buttonId === 'receipt') {
-            // Отправляем данные и закрываем
+            // Создание квитанции через callback кнопку
             console.log('📝 Создание квитанции для client_id:', aptData.client_id);
             
-            const data = {
-                action: 'create_receipt',
-                client_id: aptData.client_id,
-                floor: floor,
-                apartment: apartment
-            };
+            // Формируем deep link с параметром start
+            const startParam = `receipt_${aptData.client_id}`;
+            const deepLink = `https://t.me/${tg.initDataUnsafe?.bot?.username || 'testdogovorbot'}?start=${startParam}`;
             
-            console.log('📤 Отправка данных:', JSON.stringify(data));
-            tg.sendData(JSON.stringify(data));
+            console.log('🔗 Deep link:', deepLink);
+            
+            // Закрываем Mini App и открываем бота
+            tg.close();
+            window.location.href = deepLink;
             
         } else if (buttonId === 'info') {
             // Просто показываем информацию еще раз
@@ -239,17 +239,18 @@ function showFreeApartmentInfo(floor, apartment) {
         console.log('Нажата кнопка:', buttonId);
         
         if (buttonId === 'contract') {
-            // Отправляем данные и закрываем
+            // Создание договора через callback кнопку
             console.log('✍️ Создание договора для квартиры:', floor, '-', apartment);
             
-            const data = {
-                action: 'create_contract',
-                floor: floor,
-                apartment: apartment
-            };
+            // Формируем deep link с параметром start
+            const startParam = `contract_${floor}_${apartment}`;
+            const deepLink = `https://t.me/${tg.initDataUnsafe?.bot?.username || 'testdogovorbot'}?start=${startParam}`;
             
-            console.log('📤 Отправка данных:', JSON.stringify(data));
-            tg.sendData(JSON.stringify(data));
+            console.log('🔗 Deep link:', deepLink);
+            
+            // Закрываем Mini App и открываем бота
+            tg.close();
+            window.location.href = deepLink;
         }
     });
 }
