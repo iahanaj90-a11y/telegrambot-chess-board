@@ -186,34 +186,33 @@ function showOccupiedApartmentInfo(floor, apartment, aptData) {
     message += `🏢 Блок: ${aptData.block}\n`;
     message += `📍 Квартира: ${floor}-${apartment}`;
     
-    // Показываем popup
+    // Показываем popup с информацией
     tg.showPopup({
         title: `Квартира ${floor}-${apartment}`,
         message: message,
         buttons: [
             {id: 'receipt', type: 'default', text: '📝 Создать квитанцию'},
-            {id: 'info', type: 'default', text: 'ℹ️ Информация'},
             {id: 'close', type: 'cancel'}
         ]
     }, (buttonId) => {
         console.log('Нажата кнопка:', buttonId);
         
         if (buttonId === 'receipt') {
-            // Создание квитанции через callback кнопку
+            // Создание квитанции через sendData
             console.log('📝 Создание квитанции для client_id:', aptData.client_id);
             
-            // Формируем deep link с параметром start
-            const startParam = `receipt_${aptData.client_id}`;
-            const deepLink = `https://t.me/testdogovorbot?start=${startParam}`;
-
-                console.log('🔗 Deep link:', deepLink);
-                console.log('🔗 Start param:', startParam);
-
-            // Открываем бота с параметром через Telegram API
-            tg.openTelegramLink(deepLink);
-        } else if (buttonId === 'info') {
-            // Просто показываем информацию еще раз
-            tg.showAlert(`Клиент: ${aptData.owner}\nПлощадь: ${aptData.area} м²\nБлок: ${aptData.block}`);
+            const data = {
+                action: 'create_receipt',
+                client_id: aptData.client_id,
+                floor: floor,
+                apartment: apartment
+            };
+            
+            const jsonData = JSON.stringify(data);
+            console.log('📤 Отправка данных через sendData:', jsonData);
+            
+            // Отправляем данные боту
+            tg.sendData(jsonData);
         }
     });
 }
@@ -238,18 +237,20 @@ function showFreeApartmentInfo(floor, apartment) {
         console.log('Нажата кнопка:', buttonId);
         
         if (buttonId === 'contract') {
-            // Создание договора через callback кнопку
+            // Создание договора через sendData
             console.log('✍️ Создание договора для квартиры:', floor, '-', apartment);
             
-            // Формируем deep link с параметром start
-            const startParam = `contract_${floor}_${apartment}`;
-            const deepLink = `https://t.me/testdogovorbot?start=${startParam}`;
-
-                console.log('🔗 Deep link:', deepLink);
-                console.log('🔗 Start param:', startParam);
-
-            // Открываем бота с параметром через Telegram API
-            tg.openTelegramLink(deepLink);
+            const data = {
+                action: 'create_contract',
+                floor: floor,
+                apartment: apartment
+            };
+            
+            const jsonData = JSON.stringify(data);
+            console.log('📤 Отправка данных через sendData:', jsonData);
+            
+            // Отправляем данные боту
+            tg.sendData(jsonData);
         }
     });
 }
