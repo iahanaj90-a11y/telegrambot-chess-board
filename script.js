@@ -9,61 +9,144 @@ if (!tg.initData || tg.initData.length === 0) {
         <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
             <h1>🔒 Доступ запрещен</h1>
             <p>Это приложение работает только через Telegram бота.</p>
-            <p>Откройте бота и выберите "Шахматка 4 (Mini App)"</p>
+            <p>Откройте бота и выберите "Шахматка квартир"</p>
         </div>
     `;
     throw new Error('Unauthorized access - not from Telegram');
 }
 
-// Этажи и квартиры
+// Глобальные данные
 const floors = ['ц.', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-const apartments = 14;
-
-// Состояние выбора
+const apartmentsPerFloor = 14;
+let apartmentsData = {};
 let selectedApartment = null;
+let currentFilter = 'all';
+let currentTab = 'classic';
 
-// Статусы квартир (будут загружены из бота)
-let apartmentsStatus = {};
+// Флаги для lazy loading
+const tabsLoaded = {
+    classic: false,
+    cards: false,
+    list: false,
+    heatmap: false
+};
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', async () => {
-    // 🔒 Дополнительная проверка безопасности
+    // 🔒 Проверка безопасности
     if (!validateTelegramData()) {
         showError('Ошибка авторизации. Откройте через Telegram бота.');
         return;
     }
     
-    // Получаем статусы квартир из initData или загружаем с сервера
-    try {
-        const initData = tg.initDataUnsafe;
-        
-        // Загружаем статусы квартир
-        await loadApartmentsStatus();
-        
-    } catch (e) {
-        console.log('No init data, using empty status');
+    // Загружаем данные о квартирах
+    await loadApartmentsData();
+    
+    // Обновляем статистику
+    updateStats();
+    
+    // Загружаем первый таб (Классика)
+    generateClassicView();
+    tabsLoaded.classic = true;
+    
+    // Восстанавливаем последний выбранный таб
+    const savedTab = sessionStorage.getItem('selectedTab');
+    if (savedTab && savedTab !== 'classic') {
+        switchTab(savedTab);
     }
     
-    // Генерируем таблицу
-    generateChessBoard();
-    
-    // Настраиваем главную кнопку
-    tg.MainButton.setText('Выбрать квартиру');
-    tg.MainButton.color = tg.themeParams.button_color || '#3390ec';
-    tg.MainButton.hide();
-    
-    // Обработчик главной кнопки
-    tg.MainButton.onClick(() => {
-        if (selectedApartment) {
-            // Отправляем данные обратно в бота
-            tg.sendData(JSON.stringify(selectedApartment));
-        }
-    });
+    // Добавляем обработчики поиска
+    document.getElementById('cardsSearch')?.addEventListener('input', (e) => searchCards(e.target.value));
+    document.getElementById('listSearch')?.addEventListener('input', (e) => searchList(e.target.value));
 });
 
-// Генерация таблицы шахматки
-function generateChessBoard() {
-    const tbody = document.getElementById('chessBoard');
+// ==================== ЗАГРУЗКА ДАННЫХ ====================
+
+async function loadApartmentsData() {
+    try {
+        const response = await fetch('apartments_status.json');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        apartmentsData = await response.json();
+        
+        console.log('✅ Данные о квартирах загружены');
+        console.log(`📊 Этажей: ${Object.keys(apartmentsData).length}`);
+        
+        return true;
+    } catch (e) {
+        console.error('⚠️ Ошибка загрузки данных:', e);
+        console.log('📊 Используем пустые данные (все квартиры свободны)');
+        apartmentsData = {};
+        return false;
+    }
+}
+
+// ==================== СТАТИСТИКА ====================
+
+function updateStats() {
+    const totalApartments = floors.length * apartmentsPerFloor;
+    let occupiedCount = 0;
+    
+    for (const floor in apartmentsData) {
+        occupiedCount += Object.keys(apartmentsData[floor]).length;
+    }
+    
+    const freeCount = totalApartments - occupiedCount;
+    
+    document.getElementById('totalApartments').textContent = totalApartments;
+    document.getElementById('occupiedCount').textContent = occupiedCount;
+    document.getElementById('freeCount').textContent = freeCount;
+}
+
+// ==================== ПЕРЕКЛЮЧЕНИЕ ТАБОВ ====================
+
+function switchTab(tabName) {
+    // Сохраняем выбор
+    currentTab = tabName;
+    sessionStorage.setItem('selectedTab', tabName);
+    
+    // Обновляем кнопки табов
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    
+    // Обновляем контент табов
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `tab-${tabName}`);
+    });
+    
+    // Lazy loading: генерируем контент только при первом открытии
+    if (!tabsLoaded[tabName]) {
+        switch(tabName) {
+            case 'classic':
+                generateClassicView();
+                break;
+            case 'cards':
+                generateCardsView();
+                break;
+            case 'list':
+                generateListView();
+                break;
+            case 'heatmap':
+                generateHeatmapView();
+                break;
+        }
+        tabsLoaded[tabName] = true;
+    }
+    
+    // Тактильная отдача
+    if (tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('light');
+    }
+}
+
+// ==================== ВАРИАНТ 1: КЛАССИКА (Excel) ====================
+
+function generateClassicView() {
+    const tbody = document.getElementById('classicBody');
     tbody.innerHTML = '';
     
     floors.forEach(floor => {
@@ -76,24 +159,40 @@ function generateChessBoard() {
         row.appendChild(floorCell);
         
         // Ячейки с квартирами
-        for (let apt = 1; apt <= apartments; apt++) {
+        for (let apt = 1; apt <= apartmentsPerFloor; apt++) {
             const cell = document.createElement('td');
-            cell.className = 'apartment-cell';
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'apartment-cell';
             
-            // Проверяем статус квартиры
-            const isOccupied = apartmentsStatus[floor] && apartmentsStatus[floor][apt];
+            const aptData = apartmentsData[floor]?.[apt];
+            const isOccupied = !!aptData;
             
-            if (isOccupied) {
-                cell.className += ' occupied';
-                cell.textContent = '🔴';
-            } else {
-                cell.className += ' free';
-                cell.textContent = '🟢';
+            cellDiv.classList.add(isOccupied ? 'occupied' : 'free');
+            
+            // Иконка статуса
+            const icon = document.createElement('div');
+            icon.className = 'status-icon';
+            icon.textContent = isOccupied ? '🔴' : '🟢';
+            cellDiv.appendChild(icon);
+            
+            // Номер квартиры
+            const number = document.createElement('div');
+            number.className = 'apt-number';
+            number.textContent = `${floor}-${apt}`;
+            cellDiv.appendChild(number);
+            
+            // ФИО владельца (если занята)
+            if (isOccupied && aptData.owner) {
+                const owner = document.createElement('div');
+                owner.className = 'owner-name';
+                owner.textContent = aptData.owner;
+                cellDiv.appendChild(owner);
             }
             
             // Обработчик клика
-            cell.addEventListener('click', () => handleCellClick(floor, apt, cell, isOccupied));
+            cellDiv.addEventListener('click', () => handleApartmentClick(floor, apt, aptData));
             
+            cell.appendChild(cellDiv);
             row.appendChild(cell);
         }
         
@@ -101,51 +200,327 @@ function generateChessBoard() {
     });
 }
 
-// Обработка клика по ячейке
-function handleCellClick(floor, apartment, cell, isOccupied) {
-    // Снимаем выделение с предыдущей ячейки
-    document.querySelectorAll('.apartment-cell.selected').forEach(el => {
-        el.classList.remove('selected');
+// ==================== ВАРИАНТ 2: КАРТОЧКИ ====================
+
+function generateCardsView() {
+    const container = document.getElementById('cardsContainer');
+    container.innerHTML = '';
+    
+    const allApartments = [];
+    
+    // Собираем все квартиры
+    floors.forEach(floor => {
+        for (let apt = 1; apt <= apartmentsPerFloor; apt++) {
+            const aptData = apartmentsData[floor]?.[apt];
+            allApartments.push({
+                floor,
+                apartment: apt,
+                data: aptData,
+                occupied: !!aptData
+            });
+        }
     });
     
-    // Выделяем текущую ячейку
-    cell.classList.add('selected');
+    // Сортируем: сначала занятые, потом свободные
+    allApartments.sort((a, b) => {
+        if (a.occupied && !b.occupied) return -1;
+        if (!a.occupied && b.occupied) return 1;
+        return 0;
+    });
     
-    // Сохраняем выбор
-    selectedApartment = {
-        floor: floor,
-        apartment: apartment,
-        occupied: isOccupied
-    };
+    // Генерируем карточки
+    allApartments.forEach(apt => {
+        const card = document.createElement('div');
+        card.className = `apartment-card ${apt.occupied ? 'occupied' : 'free'}`;
+        card.dataset.floor = apt.floor;
+        card.dataset.apartment = apt.apartment;
+        card.dataset.owner = apt.data?.owner || '';
+        
+        // Иконка
+        const icon = document.createElement('div');
+        icon.className = 'card-icon';
+        icon.textContent = apt.occupied ? '🔴' : '🟢';
+        card.appendChild(icon);
+        
+        // Номер квартиры
+        const number = document.createElement('div');
+        number.className = 'card-number';
+        number.textContent = `${apt.floor}-${apt.apartment}`;
+        card.appendChild(number);
+        
+        // Этаж
+        const floor = document.createElement('div');
+        floor.className = 'card-floor';
+        floor.textContent = `Этаж: ${apt.floor}`;
+        card.appendChild(floor);
+        
+        // Владелец
+        if (apt.occupied && apt.data?.owner) {
+            const owner = document.createElement('div');
+            owner.className = 'card-owner';
+            owner.textContent = apt.data.owner;
+            card.appendChild(owner);
+        }
+        
+        // Площадь
+        if (apt.data?.area) {
+            const area = document.createElement('div');
+            area.className = 'card-area';
+            area.textContent = `${apt.data.area} м²`;
+            card.appendChild(area);
+        }
+        
+        // Клик
+        card.addEventListener('click', () => handleApartmentClick(apt.floor, apt.apartment, apt.data));
+        
+        container.appendChild(card);
+    });
+}
+
+function searchCards(query) {
+    const cards = document.querySelectorAll('.apartment-card');
+    const searchLower = query.toLowerCase();
     
-    // Показываем главную кнопку
-    tg.MainButton.setText(`Выбрать: Этаж ${floor}, Кв. ${apartment} ${isOccupied ? '🔴' : '🟢'}`);
-    tg.MainButton.show();
+    cards.forEach(card => {
+        const number = `${card.dataset.floor}-${card.dataset.apartment}`;
+        const owner = card.dataset.owner.toLowerCase();
+        
+        const matches = number.includes(searchLower) || owner.includes(searchLower);
+        card.style.display = matches ? 'flex' : 'none';
+    });
+}
+
+// ==================== ВАРИАНТ 3: СПИСОК ====================
+
+function generateListView() {
+    const container = document.getElementById('listContainer');
+    container.innerHTML = '';
     
-    // Тактильная отдача (если поддерживается)
+    floors.forEach(floor => {
+        const group = document.createElement('div');
+        group.className = 'floor-group';
+        
+        // Заголовок этажа
+        const header = document.createElement('div');
+        header.className = 'floor-header-list';
+        
+        const floorApts = apartmentsData[floor] || {};
+        const occupiedInFloor = Object.keys(floorApts).length;
+        
+        header.innerHTML = `
+            <span>Этаж ${floor} (${occupiedInFloor}/${apartmentsPerFloor})</span>
+            <span class="floor-toggle">▼</span>
+        `;
+        
+        header.addEventListener('click', () => {
+            group.classList.toggle('collapsed');
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        });
+        
+        group.appendChild(header);
+        
+        // Список квартир
+        const list = document.createElement('div');
+        list.className = 'apartments-list';
+        
+        for (let apt = 1; apt <= apartmentsPerFloor; apt++) {
+            const aptData = apartmentsData[floor]?.[apt];
+            const isOccupied = !!aptData;
+            
+            const item = document.createElement('div');
+            item.className = `list-item ${isOccupied ? 'occupied' : 'free'}`;
+            item.dataset.status = isOccupied ? 'occupied' : 'free';
+            item.dataset.owner = aptData?.owner || '';
+            
+            const info = document.createElement('div');
+            info.className = 'list-item-info';
+            
+            const title = document.createElement('div');
+            title.className = 'list-item-title';
+            title.textContent = `Квартира ${floor}-${apt}`;
+            info.appendChild(title);
+            
+            const details = document.createElement('div');
+            details.className = 'list-item-details';
+            
+            if (isOccupied && aptData) {
+                details.textContent = `${aptData.owner} • ${aptData.area} м² • Блок ${aptData.block}`;
+            } else {
+                details.textContent = 'Свободна';
+            }
+            
+            info.appendChild(details);
+            item.appendChild(info);
+            
+            const status = document.createElement('div');
+            status.className = 'list-item-status';
+            status.textContent = isOccupied ? '🔴' : '🟢';
+            item.appendChild(status);
+            
+            // Клик
+            item.addEventListener('click', () => handleApartmentClick(floor, apt, aptData));
+            
+            list.appendChild(item);
+        }
+        
+        group.appendChild(list);
+        container.appendChild(group);
+    });
+}
+
+function filterList(filter) {
+    currentFilter = filter;
+    
+    // Обновляем кнопки фильтра
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+    
+    // Фильтруем элементы
+    const items = document.querySelectorAll('.list-item');
+    items.forEach(item => {
+        const status = item.dataset.status;
+        
+        if (filter === 'all') {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = status === filter ? 'flex' : 'none';
+        }
+    });
+    
+    // Тактильная отдача
     if (tg.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('light');
     }
 }
 
-// ==================== ФУНКЦИИ БЕЗОПАСНОСТИ ====================
+function searchList(query) {
+    const items = document.querySelectorAll('.list-item');
+    const searchLower = query.toLowerCase();
+    
+    items.forEach(item => {
+        const title = item.querySelector('.list-item-title').textContent.toLowerCase();
+        const owner = item.dataset.owner.toLowerCase();
+        
+        const matches = title.includes(searchLower) || owner.includes(searchLower);
+        
+        // Учитываем текущий фильтр
+        if (currentFilter === 'all') {
+            item.style.display = matches ? 'flex' : 'none';
+        } else {
+            const status = item.dataset.status;
+            item.style.display = (matches && status === currentFilter) ? 'flex' : 'none';
+        }
+    });
+}
 
-// 🔒 Проверка подлинности данных от Telegram
+// ==================== ВАРИАНТ 4: ТЕПЛОВАЯ КАРТА ====================
+
+function generateHeatmapView() {
+    const container = document.getElementById('heatmapContainer');
+    container.innerHTML = '';
+    
+    floors.forEach(floor => {
+        for (let apt = 1; apt <= apartmentsPerFloor; apt++) {
+            const aptData = apartmentsData[floor]?.[apt];
+            const isOccupied = !!aptData;
+            
+            const cell = document.createElement('div');
+            cell.className = `heatmap-cell ${isOccupied ? 'occupied' : 'free'}`;
+            cell.title = `${floor}-${apt}${aptData ? ': ' + aptData.owner : ''}`;
+            
+            // Номер квартиры
+            const number = document.createElement('div');
+            number.className = 'heatmap-cell-number';
+            number.textContent = apt;
+            cell.appendChild(number);
+            
+            // Этаж
+            const floorLabel = document.createElement('div');
+            floorLabel.className = 'heatmap-cell-floor';
+            floorLabel.textContent = floor;
+            cell.appendChild(floorLabel);
+            
+            // Tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            
+            if (isOccupied && aptData) {
+                tooltip.innerHTML = `
+                    Кв. ${floor}-${apt}<br>
+                    ${aptData.owner}<br>
+                    ${aptData.area} м²
+                `;
+            } else {
+                tooltip.innerHTML = `Кв. ${floor}-${apt}<br>Свободна`;
+            }
+            
+            cell.appendChild(tooltip);
+            
+            // Клик
+            cell.addEventListener('click', () => handleApartmentClick(floor, apt, aptData));
+            
+            container.appendChild(cell);
+        }
+    });
+}
+
+// ==================== ОБРАБОТКА ВЫБОРА КВАРТИРЫ ====================
+
+function handleApartmentClick(floor, apartment, aptData) {
+    const isOccupied = !!aptData;
+    
+    selectedApartment = {
+        floor,
+        apartment,
+        occupied: isOccupied,
+        owner: aptData?.owner || null,
+        area: aptData?.area || null,
+        block: aptData?.block || null
+    };
+    
+    // Формируем сообщение для MainButton
+    let message = `Этаж ${floor}, Кв. ${apartment}`;
+    
+    if (isOccupied && aptData) {
+        message += ` • ${aptData.owner}`;
+    } else {
+        message += ` • Свободна`;
+    }
+    
+    // Показываем информацию через Telegram
+    tg.showPopup({
+        title: `Квартира ${floor}-${apartment}`,
+        message: isOccupied && aptData ? 
+            `Владелец: ${aptData.owner}\nПлощадь: ${aptData.area} м²\nБлок: ${aptData.block}\nСтатус: Занята 🔴` :
+            `Статус: Свободна 🟢`,
+        buttons: [
+            {id: 'close', type: 'close'}
+        ]
+    });
+    
+    // Тактильная отдача
+    if (tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('medium');
+    }
+}
+
+// ==================== БЕЗОПАСНОСТЬ ====================
+
 function validateTelegramData() {
-    // Проверяем наличие initData
     if (!tg.initData) {
         console.error('🔒 Нет initData от Telegram');
         return false;
     }
     
-    // Проверяем наличие обязательных полей
     const initDataUnsafe = tg.initDataUnsafe;
     if (!initDataUnsafe || !initDataUnsafe.user) {
         console.error('🔒 Неполные данные пользователя');
         return false;
     }
     
-    // Проверяем, что запрос идет из правильной среды
     if (!window.Telegram || !window.Telegram.WebApp) {
         console.error('🔒 Не найден Telegram WebApp SDK');
         return false;
@@ -157,7 +532,6 @@ function validateTelegramData() {
     return true;
 }
 
-// Показать ошибку
 function showError(message) {
     document.body.innerHTML = `
         <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
@@ -177,40 +551,9 @@ function showError(message) {
     `;
 }
 
-// Загрузка статусов квартир
-async function loadApartmentsStatus() {
-    try {
-        // Загружаем статусы из JSON файла
-        const response = await fetch('apartments_status.json');
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        apartmentsStatus = data;
-        
-        // Подсчитываем статистику
-        let occupiedCount = 0;
-        for (const floor in apartmentsStatus) {
-            occupiedCount += Object.keys(apartmentsStatus[floor]).length;
-        }
-        
-        console.log('✅ Статусы квартир загружены из базы данных');
-        console.log(`📊 Этажей с занятыми квартирами: ${Object.keys(apartmentsStatus).length}`);
-        console.log(`🔴 Всего занятых квартир: ${occupiedCount}`);
-        
-        return true;
-    } catch (e) {
-        console.error('⚠️ Ошибка загрузки статусов:', e);
-        console.log('📊 Используем пустые статусы (все квартиры свободны)');
-        // Продолжаем работу с пустыми статусами
-        apartmentsStatus = {};
-        return false;
-    }
-}
+// ==================== ТЕМА ====================
 
-// Применение темной темы Telegram
+// Применение темы Telegram
 if (tg.colorScheme === 'dark') {
     document.body.classList.add('dark-theme');
 }
@@ -224,13 +567,8 @@ tg.onEvent('themeChanged', () => {
     }
 });
 
-// 🔒 Дополнительная защита: блокировка DevTools (опционально)
+// 🔒 Дополнительная защита
 (function() {
-    const devtools = /./;
-    devtools.toString = function() {
-        console.warn('🔒 Попытка открыть DevTools обнаружена');
-    };
     console.log('%c🔒 Защищенное приложение', 'font-size: 20px; color: red; font-weight: bold;');
     console.log('%cЭто приложение работает только через официального Telegram бота', 'font-size: 14px;');
 })();
-
