@@ -41,41 +41,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Настраиваем MainButton (скрыт по умолчанию)
     tg.MainButton.hide();
     
-    // Обработчик клика по MainButton
+    // Обработчик клика по MainButton - ПРОСТО ЗАКРЫВАЕМ
     tg.MainButton.onClick(() => {
-        if (selectedApartment && tg.initDataUnsafe.query_id) {
-            console.log('📤 Отправка через answerWebAppQuery');
-            console.log('Query ID:', tg.initDataUnsafe.query_id);
-            console.log('Selected apartment:', selectedApartment);
+        if (selectedApartment) {
+            console.log('✅ Квартира выбрана:', selectedApartment);
             
-            const result = {
-                type: 'article',
-                id: '1',
-                title: selectedApartment.occupied 
-                    ? `Квитанция для ${selectedApartment.owner}`
-                    : `Договор для квартиры ${selectedApartment.floor}-${selectedApartment.apartment}`,
-                description: selectedApartment.occupied 
-                    ? `Создать квитанцию для квартиры ${selectedApartment.floor}-${selectedApartment.apartment}`
-                    : `Создать договор для квартиры ${selectedApartment.floor}-${selectedApartment.apartment}`,
-                input_message_content: {
-                    message_text: selectedApartment.occupied
-                        ? `📝 Квартира ${selectedApartment.floor}-${selectedApartment.apartment}\n👤 Клиент: ${selectedApartment.owner}`
-                        : `✍️ Квартира ${selectedApartment.floor}-${selectedApartment.apartment}\n✅ Свободна`
-                },
-                reply_markup: {
-                    inline_keyboard: [[
-                        selectedApartment.occupied
-                            ? {text: '📝 Создать квитанцию', callback_data: `create_receipt_${selectedApartment.clientId}`}
-                            : {text: '✍️ Создать договор', callback_data: `create_contract_${selectedApartment.floor}_${selectedApartment.apartment}`}
-                    ]]
-                }
-            };
+            // Сохраняем в localStorage для передачи боту
+            const apartmentData = JSON.stringify({
+                floor: selectedApartment.floor,
+                apartment: selectedApartment.apartment,
+                occupied: selectedApartment.occupied,
+                clientId: selectedApartment.clientId,
+                owner: selectedApartment.owner,
+                timestamp: Date.now()
+            });
             
-            console.log('Sending result:', result);
-            tg.answerWebAppQuery(tg.initDataUnsafe.query_id, result);
-        } else {
-            console.error('❌ No query_id or selectedApartment');
-            tg.showAlert('Ошибка: не удалось отправить данные. Попробуйте открыть шахматку через inline режим.');
+            try {
+                localStorage.setItem('selectedApartment', apartmentData);
+                console.log('💾 Данные сохранены:', apartmentData);
+            } catch (e) {
+                console.error('❌ Ошибка сохранения:', e);
+            }
+            
+            // Показываем подтверждение
+            const message = selectedApartment.occupied
+                ? `Квартира ${selectedApartment.floor}-${selectedApartment.apartment}\nКлиент: ${selectedApartment.owner}\n\nЗакрываю шахматку...`
+                : `Квартира ${selectedApartment.floor}-${selectedApartment.apartment}\nСтатус: Свободна\n\nЗакрываю шахматку...`;
+            
+            tg.showAlert(message);
+            
+            // Закрываем Mini App
+            setTimeout(() => {
+                tg.close();
+            }, 1000);
         }
     });
     
