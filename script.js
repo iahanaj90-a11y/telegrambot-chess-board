@@ -44,22 +44,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Обработчик клика по MainButton
     tg.MainButton.onClick(() => {
         if (selectedApartment) {
-            const data = selectedApartment.occupied 
-                ? {
-                    action: 'create_receipt',
-                    client_id: selectedApartment.clientId,
-                    floor: selectedApartment.floor,
-                    apartment: selectedApartment.apartment
-                }
-                : {
-                    action: 'create_contract',
-                    floor: selectedApartment.floor,
-                    apartment: selectedApartment.apartment
-                };
+            const param = selectedApartment.occupied 
+                ? `receipt_${selectedApartment.clientId}`
+                : `contract_${selectedApartment.floor}_${selectedApartment.apartment}`;
             
-            const jsonData = JSON.stringify(data);
-            console.log('📤 MainButton: Отправка данных:', jsonData);
-            tg.sendData(jsonData);
+            const botUrl = `https://t.me/testdogovorbot?start=${param}`;
+            console.log('🔗 Opening bot with param:', param);
+            tg.openLink(botUrl);
         }
     });
     
