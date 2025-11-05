@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const botUrl = `https://t.me/testdogovorbot?start=${param}`;
             console.log('🔗 Opening bot with param:', param);
-            tg.openLink(botUrl);
+            tg.openTelegramLink(botUrl);
         }
     });
     
