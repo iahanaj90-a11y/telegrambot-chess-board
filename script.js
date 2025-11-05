@@ -38,8 +38,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Генерируем классическую таблицу
     generateClassicView();
     
-    // Настраиваем MainButton
+    // Настраиваем MainButton (скрыт по умолчанию)
     tg.MainButton.hide();
+    
+    // Обработчик клика по MainButton
+    tg.MainButton.onClick(() => {
+        if (selectedApartment) {
+            const data = selectedApartment.occupied 
+                ? {
+                    action: 'create_receipt',
+                    client_id: selectedApartment.clientId,
+                    floor: selectedApartment.floor,
+                    apartment: selectedApartment.apartment
+                }
+                : {
+                    action: 'create_contract',
+                    floor: selectedApartment.floor,
+                    apartment: selectedApartment.apartment
+                };
+            
+            const jsonData = JSON.stringify(data);
+            console.log('📤 MainButton: Отправка данных:', jsonData);
+            tg.sendData(jsonData);
+        }
+    });
     
     // Обработка закрытия Mini App
     window.addEventListener('beforeunload', () => {
@@ -186,35 +208,20 @@ function showOccupiedApartmentInfo(floor, apartment, aptData) {
     message += `🏢 Блок: ${aptData.block}\n`;
     message += `📍 Квартира: ${floor}-${apartment}`;
     
-    // Показываем popup с информацией
+    // Показываем информацию и активируем MainButton
     tg.showPopup({
         title: `Квартира ${floor}-${apartment}`,
         message: message,
         buttons: [
-            {id: 'receipt', type: 'default', text: '📝 Создать квитанцию'},
-            {id: 'close', type: 'cancel'}
+            {id: 'ok', type: 'default', text: 'OK'}
         ]
-    }, (buttonId) => {
-        console.log('Нажата кнопка:', buttonId);
-        
-        if (buttonId === 'receipt') {
-            // Создание квитанции через sendData
-            console.log('📝 Создание квитанции для client_id:', aptData.client_id);
-            
-            const data = {
-                action: 'create_receipt',
-                client_id: aptData.client_id,
-                floor: floor,
-                apartment: apartment
-            };
-            
-            const jsonData = JSON.stringify(data);
-            console.log('📤 Отправка данных через sendData:', jsonData);
-            
-            // Отправляем данные боту
-            tg.sendData(jsonData);
-        }
     });
+    
+    // Активируем MainButton для создания квитанции
+    tg.MainButton.setText('📝 Создать квитанцию');
+    tg.MainButton.show();
+    
+    console.log('✅ MainButton активирована для квитанции, client_id:', aptData.client_id);
 }
 
 // Показать информацию о свободной квартире
@@ -225,34 +232,20 @@ function showFreeApartmentInfo(floor, apartment) {
     message += `🏢 Этаж: ${floor}\n`;
     message += `✅ Статус: Свободна`;
     
-    // Показываем popup с кнопками
+    // Показываем информацию и активируем MainButton
     tg.showPopup({
         title: `Квартира ${floor}-${apartment}`,
         message: message,
         buttons: [
-            {id: 'contract', type: 'default', text: '✍️ Создать договор'},
-            {id: 'close', type: 'cancel'}
+            {id: 'ok', type: 'default', text: 'OK'}
         ]
-    }, (buttonId) => {
-        console.log('Нажата кнопка:', buttonId);
-        
-        if (buttonId === 'contract') {
-            // Создание договора через sendData
-            console.log('✍️ Создание договора для квартиры:', floor, '-', apartment);
-            
-            const data = {
-                action: 'create_contract',
-                floor: floor,
-                apartment: apartment
-            };
-            
-            const jsonData = JSON.stringify(data);
-            console.log('📤 Отправка данных через sendData:', jsonData);
-            
-            // Отправляем данные боту
-            tg.sendData(jsonData);
-        }
     });
+    
+    // Активируем MainButton для создания договора
+    tg.MainButton.setText('✍️ Создать договор');
+    tg.MainButton.show();
+    
+    console.log('✅ MainButton активирована для договора, квартира:', floor, '-', apartment);
 }
 
 // ==================== БЕЗОПАСНОСТЬ ====================
