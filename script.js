@@ -145,7 +145,6 @@ function generateClassicView() {
 function handleApartmentClick(floor, apartment, aptData) {
     const isOccupied = !!aptData;
     
-    // Сохраняем выбранную квартиру
     selectedApartment = {
         floor: floor,
         apartment: apartment,
@@ -156,12 +155,13 @@ function handleApartmentClick(floor, apartment, aptData) {
         clientId: aptData?.client_id || null
     };
     
-    // Показываем соответствующую кнопку
+    console.log('🎯 Выбрана квартира:', selectedApartment);
+    
     if (isOccupied && aptData) {
-        // Занятая квартира - предлагаем создать квитанцию
+        // Занятая квартира - показываем информацию и предлагаем квитанцию
         showOccupiedApartmentInfo(floor, apartment, aptData);
     } else {
-        // Свободная квартира - предлагаем создать договор
+        // Свободная квартира - показываем информацию и предлагаем договор
         showFreeApartmentInfo(floor, apartment);
     }
     
@@ -173,89 +173,57 @@ function handleApartmentClick(floor, apartment, aptData) {
 
 // Показать информацию о занятой квартире
 function showOccupiedApartmentInfo(floor, apartment, aptData) {
-    // Показываем popup с информацией
-    const message = `👤 Владелец: ${aptData.owner}\n📐 Площадь: ${aptData.area} м²\n🏢 Блок: ${aptData.block}\n📍 Квартира: ${floor}-${apartment}\n\n💡 Нажмите кнопку ниже чтобы создать квитанцию`;
+    const message = `👤 Владелец: ${aptData.owner}\n📐 Площадь: ${aptData.area} м²\n🏢 Блок: ${aptData.block}\n📍 Квартира: ${floor}-${apartment}`;
     
     tg.showAlert(message);
     
-    // Настраиваем MainButton для создания квитанции
+    // Настраиваем MainButton
     tg.MainButton.setText('📝 Создать ежемесячную квитанцию');
     tg.MainButton.color = '#3390ec';
     tg.MainButton.show();
     
-    // Удаляем предыдущие обработчики
     tg.MainButton.offClick();
-    
-    // Добавляем новый обработчик
-    tg.MainButton.onClick(function handler() {
-        sendDataToBot('create_receipt', floor, apartment, aptData.client_id);
-        tg.MainButton.offClick(handler);
+    tg.MainButton.onClick(() => {
+        console.log('✅ Нажата кнопка: Создать квитанцию');
+        console.log('📤 Данные:', JSON.stringify(selectedApartment));
+        
+        // Отправляем данные и закрываем
+        const data = {
+            action: 'create_receipt',
+            client_id: aptData.client_id,
+            floor: floor,
+            apartment: apartment
+        };
+        
+        tg.sendData(JSON.stringify(data));
     });
 }
 
 // Показать информацию о свободной квартире
 function showFreeApartmentInfo(floor, apartment) {
-    // Определяем примерную площадь (можно взять из справочника)
-    const estimatedArea = '40.71'; // По умолчанию
-    const estimatedRooms = 2;
-    
-    const message = `📍 Квартира: ${floor}-${apartment}\n📐 Площадь: ~${estimatedArea} м²\n🛏️ Комнат: ${estimatedRooms}\n🏢 Этаж: ${floor}\n✅ Статус: Свободна\n\n💡 Нажмите кнопку ниже чтобы создать договор`;
+    const message = `📍 Квартира: ${floor}-${apartment}\n📐 Площадь: ~40.71 м²\n🛏️ Комнат: 2\n🏢 Этаж: ${floor}\n✅ Статус: Свободна`;
     
     tg.showAlert(message);
     
-    // Настраиваем MainButton для создания договора
+    // Настраиваем MainButton
     tg.MainButton.setText('✍️ Создать договор');
     tg.MainButton.color = '#4caf50';
     tg.MainButton.show();
     
-    // Удаляем предыдущие обработчики
     tg.MainButton.offClick();
-    
-    // Добавляем новый обработчик
-    tg.MainButton.onClick(function handler() {
-        sendDataToBot('create_contract', floor, apartment, null);
-        tg.MainButton.offClick(handler);
-    });
-}
-
-// Отправка данных боту
-function sendDataToBot(action, floor, apartment, clientId) {
-    const data = {
-        action: action,
-        floor: floor,
-        apartment: apartment,
-        client_id: clientId
-    };
-    
-    const jsonData = JSON.stringify(data);
-    
-    console.log('='.repeat(50));
-    console.log('📤 ОТПРАВКА ДАННЫХ БОТУ');
-    console.log('Action:', action);
-    console.log('Floor:', floor);
-    console.log('Apartment:', apartment);
-    console.log('Client ID:', clientId);
-    console.log('JSON данные:', jsonData);
-    console.log('Размер данных:', jsonData.length, 'байт');
-    console.log('Telegram WebApp версия:', tg.version);
-    console.log('Telegram WebApp готов?', tg.isReady);
-    console.log('Telegram initData есть?', tg.initData ? 'Да' : 'Нет');
-    console.log('Telegram initData длина:', tg.initData ? tg.initData.length : 0);
-    
-    // Показываем alert перед отправкой
-    tg.showAlert(`Отправка данных:\n${action}\nКвартира: ${floor}-${apartment}`);
-    
-    try {
-        // Отправляем данные боту
-        console.log('🚀 Вызываем tg.sendData()...');
-        tg.sendData(jsonData);
-        console.log('✅ tg.sendData() выполнен');
+    tg.MainButton.onClick(() => {
+        console.log('✅ Нажата кнопка: Создать договор');
+        console.log('📤 Данные:', JSON.stringify(selectedApartment));
         
-    } catch (error) {
-        console.error('❌ ОШИБКА при отправке данных:', error);
-        console.error('Stack trace:', error.stack);
-        tg.showAlert('Ошибка отправки данных: ' + error.message);
-    }
+        // Отправляем данные и закрываем
+        const data = {
+            action: 'create_contract',
+            floor: floor,
+            apartment: apartment
+        };
+        
+        tg.sendData(JSON.stringify(data));
+    });
 }
 
 // ==================== БЕЗОПАСНОСТЬ ====================
