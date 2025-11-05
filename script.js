@@ -227,13 +227,29 @@ function sendDataToBot(action, floor, apartment, clientId) {
         client_id: clientId
     };
     
-    console.log('📤 Отправка данных боту:', data);
+    console.log('='.repeat(50));
+    console.log('📤 ОТПРАВКА ДАННЫХ БОТУ');
+    console.log('Action:', action);
+    console.log('Floor:', floor);
+    console.log('Apartment:', apartment);
+    console.log('Client ID:', clientId);
+    console.log('JSON данные:', JSON.stringify(data));
+    console.log('Telegram WebApp готов?', tg.isReady);
+    console.log('Telegram initData есть?', tg.initData ? 'Да' : 'Нет');
     
-    // Отправляем данные боту
-    tg.sendData(JSON.stringify(data));
-    
-    // Закрываем Mini App
-    tg.close();
+    try {
+        // Отправляем данные боту
+        tg.sendData(JSON.stringify(data));
+        console.log('✅ sendData() вызван успешно');
+        console.log('⏳ Ожидаем закрытия Mini App от Telegram...');
+        
+        // НЕ вызываем tg.close()!
+        // Telegram автоматически закроет Mini App после получения данных
+        
+    } catch (error) {
+        console.error('❌ ОШИБКА при отправке данных:', error);
+        tg.showAlert('Ошибка отправки данных: ' + error.message);
+    }
 }
 
 // ==================== БЕЗОПАСНОСТЬ ====================
