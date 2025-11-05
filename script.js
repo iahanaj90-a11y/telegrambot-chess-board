@@ -227,27 +227,33 @@ function sendDataToBot(action, floor, apartment, clientId) {
         client_id: clientId
     };
     
+    const jsonData = JSON.stringify(data);
+    
     console.log('='.repeat(50));
     console.log('📤 ОТПРАВКА ДАННЫХ БОТУ');
     console.log('Action:', action);
     console.log('Floor:', floor);
     console.log('Apartment:', apartment);
     console.log('Client ID:', clientId);
-    console.log('JSON данные:', JSON.stringify(data));
+    console.log('JSON данные:', jsonData);
+    console.log('Размер данных:', jsonData.length, 'байт');
+    console.log('Telegram WebApp версия:', tg.version);
     console.log('Telegram WebApp готов?', tg.isReady);
     console.log('Telegram initData есть?', tg.initData ? 'Да' : 'Нет');
+    console.log('Telegram initData длина:', tg.initData ? tg.initData.length : 0);
+    
+    // Показываем alert перед отправкой
+    tg.showAlert(`Отправка данных:\n${action}\nКвартира: ${floor}-${apartment}`);
     
     try {
         // Отправляем данные боту
-        tg.sendData(JSON.stringify(data));
-        console.log('✅ sendData() вызван успешно');
-        console.log('⏳ Ожидаем закрытия Mini App от Telegram...');
-        
-        // НЕ вызываем tg.close()!
-        // Telegram автоматически закроет Mini App после получения данных
+        console.log('🚀 Вызываем tg.sendData()...');
+        tg.sendData(jsonData);
+        console.log('✅ tg.sendData() выполнен');
         
     } catch (error) {
         console.error('❌ ОШИБКА при отправке данных:', error);
+        console.error('Stack trace:', error.stack);
         tg.showAlert('Ошибка отправки данных: ' + error.message);
     }
 }
