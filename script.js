@@ -43,14 +43,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Обработчик клика по MainButton
     tg.MainButton.onClick(() => {
-        if (selectedApartment) {
-            const param = selectedApartment.occupied 
-                ? `receipt_${selectedApartment.clientId}`
-                : `contract_${selectedApartment.floor}_${selectedApartment.apartment}`;
+        if (selectedApartment && tg.initDataUnsafe.query_id) {
+            console.log('📤 Отправка через answerWebAppQuery');
+            console.log('Query ID:', tg.initDataUnsafe.query_id);
+            console.log('Selected apartment:', selectedApartment);
             
-            const botUrl = `https://t.me/testdogovorbot?start=${param}`;
-            console.log('🔗 Opening bot with param:', param);
-            tg.openTelegramLink(botUrl);
+            const result = {
+                type: 'article',
+                id: '1',
+                title: selectedApartment.occupied 
+                    ? `Квитанция для ${selectedApartment.owner}`
+                    : `Договор для квартиры ${selectedApartment.floor}-${selectedApartment.apartment}`,
+                description: selectedApartment.occupied 
+                    ? `Создать квитанцию для квартиры ${selectedApartment.floor}-${selectedApartment.apartment}`
+                    : `Создать договор для квартиры ${selectedApartment.floor}-${selectedApartment.apartment}`,
+                input_message_content: {
+                    message_text: selectedApartment.occupied
+                        ? `📝 Квартира ${selectedApartment.floor}-${selectedApartment.apartment}\n👤 Клиент: ${selectedApartment.owner}`
+                        : `✍️ Квартира ${selectedApartment.floor}-${selectedApartment.apartment}\n✅ Свободна`
+                },
+                reply_markup: {
+                    inline_keyboard: [[
+                        selectedApartment.occupied
+                            ? {text: '📝 Создать квитанцию', callback_data: `create_receipt_${selectedApartment.clientId}`}
+                            : {text: '✍️ Создать договор', callback_data: `create_contract_${selectedApartment.floor}_${selectedApartment.apartment}`}
+                    ]]
+                }
+            };
+            
+            console.log('Sending result:', result);
+            tg.answerWebAppQuery(tg.initDataUnsafe.query_id, result);
+        } else {
+            console.error('❌ No query_id or selectedApartment');
+            tg.showAlert('Ошибка: не удалось отправить данные. Попробуйте открыть шахматку через inline режим.');
         }
     });
     
