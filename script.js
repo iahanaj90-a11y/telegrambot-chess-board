@@ -204,14 +204,13 @@ function showOccupiedApartmentInfo(floor, apartment, aptData) {
             
             // Формируем deep link с параметром start
             const startParam = `receipt_${aptData.client_id}`;
-            const deepLink = `https://t.me/${tg.initDataUnsafe?.bot?.username || 'testdogovorbot'}?start=${startParam}`;
-            
-            console.log('🔗 Deep link:', deepLink);
-            
-            // Закрываем Mini App и открываем бота
-            tg.close();
-            window.location.href = deepLink;
-            
+            const deepLink = `https://t.me/testdogovorbot?start=${startParam}`;
+
+                console.log('🔗 Deep link:', deepLink);
+                console.log('🔗 Start param:', startParam);
+
+            // Открываем бота с параметром через Telegram API
+            tg.openTelegramLink(deepLink);
         } else if (buttonId === 'info') {
             // Просто показываем информацию еще раз
             tg.showAlert(`Клиент: ${aptData.owner}\nПлощадь: ${aptData.area} м²\nБлок: ${aptData.block}`);
@@ -244,13 +243,13 @@ function showFreeApartmentInfo(floor, apartment) {
             
             // Формируем deep link с параметром start
             const startParam = `contract_${floor}_${apartment}`;
-            const deepLink = `https://t.me/${tg.initDataUnsafe?.bot?.username || 'testdogovorbot'}?start=${startParam}`;
-            
-            console.log('🔗 Deep link:', deepLink);
-            
-            // Закрываем Mini App и открываем бота
-            tg.close();
-            window.location.href = deepLink;
+            const deepLink = `https://t.me/testdogovorbot?start=${startParam}`;
+
+                console.log('🔗 Deep link:', deepLink);
+                console.log('🔗 Start param:', startParam);
+
+            // Открываем бота с параметром через Telegram API
+            tg.openTelegramLink(deepLink);
         }
     });
 }
