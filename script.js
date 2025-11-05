@@ -19,6 +19,7 @@ if (!tg.initData || tg.initData.length === 0) {
 const floors = ['ц.', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const apartmentsPerFloor = 14;
 let apartmentsData = {};
+let selectedApartment = null;
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', async () => {
@@ -36,6 +37,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Генерируем классическую таблицу
     generateClassicView();
+    
+    // Настраиваем MainButton
+    tg.MainButton.hide();
 });
 
 // ==================== ЗАГРУЗКА ДАННЫХ ====================
@@ -141,27 +145,95 @@ function generateClassicView() {
 function handleApartmentClick(floor, apartment, aptData) {
     const isOccupied = !!aptData;
     
-    // Формируем сообщение для popup
-    let message;
-    if (isOccupied && aptData) {
-        message = `Владелец: ${aptData.owner}\nПлощадь: ${aptData.area} м²\nБлок: ${aptData.block}\nСтатус: Занята 🔴`;
-    } else {
-        message = `Статус: Свободна 🟢`;
-    }
+    // Сохраняем выбранную квартиру
+    selectedApartment = {
+        floor: floor,
+        apartment: apartment,
+        occupied: isOccupied,
+        owner: aptData?.owner || null,
+        area: aptData?.area || null,
+        block: aptData?.block || null,
+        clientId: aptData?.client_id || null
+    };
     
-    // Показываем информацию через Telegram
-    tg.showPopup({
-        title: `Квартира ${floor}-${apartment}`,
-        message: message,
-        buttons: [
-            {id: 'close', type: 'close'}
-        ]
-    });
+    // Показываем соответствующую кнопку
+    if (isOccupied && aptData) {
+        // Занятая квартира - предлагаем создать квитанцию
+        showOccupiedApartmentInfo(floor, apartment, aptData);
+    } else {
+        // Свободная квартира - предлагаем создать договор
+        showFreeApartmentInfo(floor, apartment);
+    }
     
     // Тактильная отдача
     if (tg.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('medium');
     }
+}
+
+// Показать информацию о занятой квартире
+function showOccupiedApartmentInfo(floor, apartment, aptData) {
+    // Показываем popup с информацией
+    const message = `👤 Владелец: ${aptData.owner}\n📐 Площадь: ${aptData.area} м²\n🏢 Блок: ${aptData.block}\n📍 Квартира: ${floor}-${apartment}\n\n💡 Нажмите кнопку ниже чтобы создать квитанцию`;
+    
+    tg.showAlert(message);
+    
+    // Настраиваем MainButton для создания квитанции
+    tg.MainButton.setText('📝 Создать ежемесячную квитанцию');
+    tg.MainButton.color = '#3390ec';
+    tg.MainButton.show();
+    
+    // Удаляем предыдущие обработчики
+    tg.MainButton.offClick();
+    
+    // Добавляем новый обработчик
+    tg.MainButton.onClick(function handler() {
+        sendDataToBot('create_receipt', floor, apartment, aptData.client_id);
+        tg.MainButton.offClick(handler);
+    });
+}
+
+// Показать информацию о свободной квартире
+function showFreeApartmentInfo(floor, apartment) {
+    // Определяем примерную площадь (можно взять из справочника)
+    const estimatedArea = '40.71'; // По умолчанию
+    const estimatedRooms = 2;
+    
+    const message = `📍 Квартира: ${floor}-${apartment}\n📐 Площадь: ~${estimatedArea} м²\n🛏️ Комнат: ${estimatedRooms}\n🏢 Этаж: ${floor}\n✅ Статус: Свободна\n\n💡 Нажмите кнопку ниже чтобы создать договор`;
+    
+    tg.showAlert(message);
+    
+    // Настраиваем MainButton для создания договора
+    tg.MainButton.setText('✍️ Создать договор');
+    tg.MainButton.color = '#4caf50';
+    tg.MainButton.show();
+    
+    // Удаляем предыдущие обработчики
+    tg.MainButton.offClick();
+    
+    // Добавляем новый обработчик
+    tg.MainButton.onClick(function handler() {
+        sendDataToBot('create_contract', floor, apartment, null);
+        tg.MainButton.offClick(handler);
+    });
+}
+
+// Отправка данных боту
+function sendDataToBot(action, floor, apartment, clientId) {
+    const data = {
+        action: action,
+        floor: floor,
+        apartment: apartment,
+        client_id: clientId
+    };
+    
+    console.log('📤 Отправка данных боту:', data);
+    
+    // Отправляем данные боту
+    tg.sendData(JSON.stringify(data));
+    
+    // Закрываем Mini App
+    tg.close();
 }
 
 // ==================== БЕЗОПАСНОСТЬ ====================
