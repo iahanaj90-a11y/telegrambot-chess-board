@@ -27,22 +27,6 @@
             </div>
         </div>
         
-        <!-- Табы навигации -->
-        <div class="tabs-navigation">
-            <button class="tab-btn active" data-tab="classic" onclick="switchTab('classic')">
-                📊 Классика
-            </button>
-            <button class="tab-btn" data-tab="cards" onclick="switchTab('cards')">
-                🎴 Карточки
-            </button>
-            <button class="tab-btn" data-tab="list" onclick="switchTab('list')">
-                📋 Список
-            </button>
-            <button class="tab-btn" data-tab="heatmap" onclick="switchTab('heatmap')">
-                🌡️ Карта
-            </button>
-        </div>
-        
         <!-- Легенда -->
         <div class="legend">
             <div class="legend-item">
@@ -53,74 +37,32 @@
             </div>
         </div>
         
-        <!-- Вариант 1: Классика (Excel-стиль) -->
-        <div id="tab-classic" class="tab-content active">
-            <div class="table-wrapper">
-                <table class="chess-board classic-view" id="classicTable">
-                    <thead>
-                        <tr>
-                            <th class="floor-header">Этаж</th>
-                            <th>1</th>
-                            <th>2</th>
-                            <th>3</th>
-                            <th>4</th>
-                            <th>5</th>
-                            <th>6</th>
-                            <th>7</th>
-                            <th>8</th>
-                            <th>9</th>
-                            <th>10</th>
-                            <th>11</th>
-                            <th>12</th>
-                            <th>13</th>
-                            <th>14</th>
-                        </tr>
-                    </thead>
-                    <tbody id="classicBody">
-                        <!-- Генерируется JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Вариант 2: Карточки -->
-        <div id="tab-cards" class="tab-content">
-            <div class="search-panel">
-                <input type="text" id="cardsSearch" class="search-input" placeholder="🔍 Поиск по номеру или ФИО...">
-            </div>
-            <div id="cardsContainer" class="cards-container">
-                <!-- Генерируется JavaScript -->
-            </div>
-        </div>
-        
-        <!-- Вариант 3: Список -->
-        <div id="tab-list" class="tab-content">
-            <div class="search-panel">
-                <input type="text" id="listSearch" class="search-input" placeholder="🔍 Поиск по номеру или ФИО...">
-                <div class="filter-buttons">
-                    <button class="filter-btn active" data-filter="all" onclick="filterList('all')">Все</button>
-                    <button class="filter-btn" data-filter="free" onclick="filterList('free')">Свободные</button>
-                    <button class="filter-btn" data-filter="occupied" onclick="filterList('occupied')">Занятые</button>
-                </div>
-            </div>
-            <div id="listContainer" class="list-container">
-                <!-- Генерируется JavaScript -->
-            </div>
-        </div>
-        
-        <!-- Вариант 4: Тепловая карта -->
-        <div id="tab-heatmap" class="tab-content">
-            <div class="heatmap-legend">
-                <span>Этаж:</span>
-                <div class="heatmap-gradient">
-                    <span>Свободно</span>
-                    <div class="gradient-bar"></div>
-                    <span>Занято</span>
-                </div>
-            </div>
-            <div id="heatmapContainer" class="heatmap-container">
-                <!-- Генерируется JavaScript -->
-            </div>
+        <!-- Классическая таблица -->
+        <div class="table-wrapper">
+            <table class="chess-board">
+                <thead>
+                    <tr>
+                        <th class="floor-header">Этаж</th>
+                        <th>1</th>
+                        <th>2</th>
+                        <th>3</th>
+                        <th>4</th>
+                        <th>5</th>
+                        <th>6</th>
+                        <th>7</th>
+                        <th>8</th>
+                        <th>9</th>
+                        <th>10</th>
+                        <th>11</th>
+                        <th>12</th>
+                        <th>13</th>
+                        <th>14</th>
+                    </tr>
+                </thead>
+                <tbody id="classicBody">
+                    <!-- Генерируется JavaScript -->
+                </tbody>
+            </table>
         </div>
 
         <div class="footer">
