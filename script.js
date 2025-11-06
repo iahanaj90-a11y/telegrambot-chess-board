@@ -50,8 +50,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             localStorage.setItem('selectedApartment', JSON.stringify(apartmentData));
             console.log('💾 Данные сохранены в localStorage:', apartmentData);
             
-            // Формируем callback_data для отправки боту
-            const callbackData = `apt_${action}_${floor}_${apartment}_${area}_${block}_${clientId}`;
+            // Формируем callback_data для отправки боту (формат: action|floor|apt|area|block|clientId)
+            const callbackData = `${action}|${floor}|${apartment}|${area}|${block}|${clientId}`;
             
             // Пытаемся отправить данные через sendData
             try {
