@@ -3,19 +3,6 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 tg.ready();
 
-// 🔒 ЗАЩИТА: Проверка что приложение запущено из Telegram
-// ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ТЕСТИРОВАНИЯ
-if (false && (!tg.initData || tg.initData.length === 0)) {
-    document.body.innerHTML = `
-        <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
-            <h1>🔒 Доступ запрещен</h1>
-            <p>Это приложение работает только через Telegram бота.</p>
-            <p>Откройте бота и выберите "Шахматка квартир"</p>
-        </div>
-    `;
-    throw new Error('Unauthorized access - not from Telegram');
-}
-
 // Глобальные данные
 const floors = ['ц.', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 const apartmentsPerFloor = 14;
