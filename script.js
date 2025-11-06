@@ -11,12 +11,6 @@ let selectedApartment = null;
 
 // Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', async () => {
-    // 🔒 Проверка безопасности
-    if (!validateTelegramData()) {
-        showError('Ошибка авторизации. Откройте через Telegram бота.');
-        return;
-    }
-    
     // Загружаем данные о квартирах
     await loadApartmentsData();
     
