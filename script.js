@@ -4,7 +4,8 @@ tg.expand();
 tg.ready();
 
 // 🔒 ЗАЩИТА: Проверка что приложение запущено из Telegram
-if (!tg.initData || tg.initData.length === 0) {
+// ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ТЕСТИРОВАНИЯ
+if (false && (!tg.initData || tg.initData.length === 0)) {
     document.body.innerHTML = `
         <div style="padding: 20px; text-align: center; font-family: Arial, sans-serif;">
             <h1>🔒 Доступ запрещен</h1>
@@ -41,39 +42,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Настраиваем MainButton (скрыт по умолчанию)
     tg.MainButton.hide();
     
-    // Обработчик клика по MainButton - ПРОСТО ЗАКРЫВАЕМ
+    // Обработчик клика по MainButton - ОТПРАВКА CALLBACK БОТУ
     tg.MainButton.onClick(() => {
         if (selectedApartment) {
             console.log('✅ Квартира выбрана:', selectedApartment);
             
-            // Сохраняем в localStorage для передачи боту
-            const apartmentData = JSON.stringify({
-                floor: selectedApartment.floor,
-                apartment: selectedApartment.apartment,
-                occupied: selectedApartment.occupied,
-                clientId: selectedApartment.clientId,
-                owner: selectedApartment.owner,
-                timestamp: Date.now()
-            });
+            const action = selectedApartment.occupied ? 'receipt' : 'contract';
+            const floor = selectedApartment.floor;
+            const apartment = selectedApartment.apartment;
+            const area = selectedApartment.area || '40.71';
+            const block = selectedApartment.block || 'A';
+            const clientId = selectedApartment.clientId || 'none';
+            const owner = selectedApartment.owner || '';
             
+            // Сохраняем данные в localStorage для последующего использования
+            const apartmentData = {
+                action,
+                floor,
+                apartment,
+                area,
+                block,
+                clientId,
+                owner,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('selectedApartment', JSON.stringify(apartmentData));
+            console.log('💾 Данные сохранены в localStorage:', apartmentData);
+            
+            // Формируем callback_data для отправки боту
+            const callbackData = `apt_${action}_${floor}_${apartment}_${area}_${block}_${clientId}`;
+            
+            // Пытаемся отправить данные через sendData
             try {
-                localStorage.setItem('selectedApartment', apartmentData);
-                console.log('💾 Данные сохранены:', apartmentData);
+                tg.sendData(callbackData);
+                console.log('📤 sendData вызван:', callbackData);
             } catch (e) {
-                console.error('❌ Ошибка сохранения:', e);
+                console.warn('⚠️ sendData не сработал:', e);
             }
             
-            // Показываем подтверждение
-            const message = selectedApartment.occupied
-                ? `Квартира ${selectedApartment.floor}-${selectedApartment.apartment}\nКлиент: ${selectedApartment.owner}\n\nЗакрываю шахматку...`
-                : `Квартира ${selectedApartment.floor}-${selectedApartment.apartment}\nСтатус: Свободна\n\nЗакрываю шахматку...`;
+            // Формируем deep link с параметрами для бота
+            // Формат: contract|receipt_floor_apartment_area_block_clientId
+            const deepLinkParam = `${action}_${floor}_${apartment}_${area}_${block}_${clientId}`;
+            const botUsername = 'testdogovorbot'; // Имя вашего бота
+            const deepLink = `https://t.me/${botUsername}?start=${deepLinkParam}`;
             
-            tg.showAlert(message);
+            console.log('🔗 Deep link сформирован:', deepLink);
+            
+            // Открываем deep link, который автоматически запустит бота с параметрами
+            tg.openTelegramLink(deepLink);
             
             // Закрываем Mini App
-            setTimeout(() => {
-                tg.close();
-            }, 1000);
+            console.log('🚪 Закрываем Mini App');
+            tg.close();
+        } else {
+            tg.showAlert('❌ Сначала выберите квартиру!');
         }
     });
     
